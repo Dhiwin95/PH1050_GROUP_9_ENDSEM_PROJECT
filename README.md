@@ -92,5 +92,3 @@ To install the main Python libraries:
 ```bash
 pip install numpy pandas scipy matplotlib seaborn scikit-learn ucimlrepo
 ```
-
-Open the notebooks in Jupyter or Google Colab. Keep the CSV files in the expected location and update the file paths in the notebooks if the filenames or folder structure differ. The kNN notebook currently refers to `synthetic_echo_returns_400.csv` and `uci_sonar_clean.csv`; update those paths to the cleaned filenames included in this repository, if those are the filenames you retain.
