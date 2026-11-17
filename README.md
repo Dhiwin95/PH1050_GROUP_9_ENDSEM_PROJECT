@@ -1,6 +1,6 @@
 # Radar and Sonar Echoes: Metal Object or Rock?
 
-**PH1050 – Foundation of Computational Physics · Final Group Project (Problem 8) · IIT Madras**
+**PH1050 – Final Group Project (Problem 8)**
 
 Can we tell a metal object from a rock by the echo it sends back? We test this with a physics model, a statistical comparison, and a classifier, on both a simulated dataset and the real UCI Sonar dataset.
 
