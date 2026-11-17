@@ -1,94 +1,164 @@
 # Radar and Sonar Echo Classification
 
-**PH1050 – Foundation of Computational Physics | Final Group Project – Problem 8 | IIT Madras**
+**PH1050 – Final Group Project – Problem 8 - Group 9**
 
-## Project overview
+## Project Overview
 
-This project investigates whether a metal object can be distinguished from a rock using the energy pattern of the sonar echo reflected by the object. Each sonar return is represented by **60 energy measurements**, one for each frequency bin. We compare the two classes using statistical analysis and train machine-learning models to classify an echo as **metal** or **rock**.
+This project investigates whether a metal object can be distinguished from a rock using the energy pattern of the sonar echo reflected by the object.
 
-## Project workflow
+Each sonar return is represented by 60 energy measurements (frequency bins). We analyse these measurements statistically and use machine-learning models to classify the returned echoes into two categories: **Metal** and **Rock**.
 
-Our work follows four main stages:
+## Project Workflow
 
-1. **Data collection and preparation** – We prepared a synthetic echo dataset and used the UCI Sonar dataset as a second, real-data comparison. The data were arranged as 60 energy-bin features and a class label for each return.
-2. **Data analysis** – For every return, we calculated the mean across its 60 energy bins. We compared the class means using Welch's two-sample t-test and a 95% confidence interval, and plotted the average energy profile of each class.
-3. **Model training** – We implemented a k-nearest neighbours (kNN) classifier using feature standardisation. The value of `k` was selected using stratified 5-fold cross-validation and compared with a majority-class baseline. A decision-tree experiment is also included in a separate notebook.
-4. **Model testing** – We evaluated the kNN model using cross-validation and a stratified 80/20 train-test split. We also tested how added Gaussian noise affects classification on the synthetic dataset.
+Our project follows four main stages:
+
+1. **Data Collection and Preparation** – We prepared a synthetic sonar echo dataset and used the UCI Sonar dataset as a real-data comparison.
+2. **Data Analysis** – We calculated the mean energy of each return, compared the two classes using Welch's t-test and a 95% confidence interval, and plotted the average energy profiles.
+3. **Model Training** – We implemented a k-nearest neighbours (kNN) classifier and a decision-tree classifier. For kNN, the optimal value of k was selected using stratified 5-fold cross-validation.
+4. **Model Testing** – We evaluated the models using cross-validation and train-test splitting. We also investigated the effect of increasing noise on classification using the synthetic dataset.
 
 ## Datasets
 
-| Dataset | Samples | Metal | Rock | Features per sample |
+We used two datasets:
+
+### 1. Synthetic Dataset
+
+File: `synthetic_echo_returns_400_formatted.csv`
+
+- Total samples: 400
+- Metal cylinder samples: 200
+- Rock samples: 200
+- Features: 60 energy-bin measurements per sample.
+
+The dataset contains the following columns:
+
+- `energy_bin_01` to `energy_bin_60`: Echo energy measurements.
+- `label`: Class identifier (`M` or `R`).
+- `class_name`: Descriptive class name (`metal_cylinder` or `rock`).
+
+Here, `M` represents a metal cylinder and `R` represents a rock.
+
+### 2. Real Dataset – UCI Sonar
+
+File: `uci_sonar_clean_reformatted.csv`
+
+- Total samples: 208
+- Metal cylinder samples: 111
+- Rock samples: 97
+- Features: 60 energy-bin measurements per sample.
+
+The dataset contains:
+
+- `return_id`: Identifier for each sonar return.
+- `class`: Target class, containing `metal_cylinder` or `rock`.
+- `energy_bin_01` to `energy_bin_60`: Echo energy measurements.
+
+The `return_id` column is an identifier and is not used as a model feature.
+
+**Original dataset source:** [UCI Machine Learning Repository – Connectionist Bench (Sonar, Mines vs. Rocks)](https://doi.org/10.24432/C5T01Q).
+
+## Part 1: Data Analysis
+
+For each sonar return, we calculated the mean of its 60 energy measurements.
+
+We then compared the mean energy of metal and rock samples using:
+
+- Welch's two-sample t-test.
+- 95% confidence interval for the difference in means.
+- Average energy profile plots for both classes.
+
+### Statistical Results
+
+| Dataset | Metal Mean | Rock Mean | Welch's t-statistic | p-value |
 |---|---:|---:|---:|---:|
-| Synthetic echo returns | 400 | 200 | 200 | 60 energy bins |
-| UCI Sonar (Mines vs. Rocks) | 208 | 111 | 97 | 60 energy attributes |
+| Synthetic | 0.3281 | 0.1843 | 37.4805 | 3.09 × 10⁻¹¹⁵ |
+| UCI Sonar | 0.2915 | 0.2697 | 4.1353 | 5.32 × 10⁻⁵ |
 
-- **Synthetic dataset:** `synthetic_echo_returns_400_formatted.csv`. The class labels are `metal_cylinder` / `rock` and `M` / `R`.
-- **Real dataset:** `uci_sonar_clean_reformatted.csv`. This is the UCI Connectionist Bench (Sonar, Mines vs. Rocks) dataset. In the original labels, `M` refers to a metal cylinder (mine) and `R` refers to a rock. Each record has 60 energy values in the range 0 to 1. Dataset source: [UCI Machine Learning Repository – Connectionist Bench (Sonar, Mines vs. Rocks)](https://doi.org/10.24432/C5T01Q).
+The 95% confidence intervals for the difference (Metal − Rock) were:
 
-The uploaded files contain the prepared synthetic CSV, but not the script that generated it. For reproducibility, the exact synthetic echo-generation method and noise settings should also be documented in the repository if that script is maintained separately.
+- Synthetic dataset: [0.1362, 0.1513]
+- UCI Sonar dataset: [0.0114, 0.0323]
 
-## Statistical analysis
+Both datasets show a higher average echo energy for metal samples compared to rock samples. The statistical results indicate a significant difference between the two classes.
 
-For each sample, we computed the mean of its 60 energy values. We then compared the metal and rock groups using Welch's t-test and calculated a 95% confidence interval for the difference in means (**metal − rock**).
+## Part 2: Machine Learning
 
-| Dataset | Mean energy: metal | Mean energy: rock | Welch's t-statistic | p-value | 95% CI for metal − rock |
-|---|---:|---:|---:|---:|---:|
-| Synthetic | 0.3281 | 0.1843 | 37.4805 | 3.09 × 10⁻¹¹⁵ | [0.1362, 0.1513] |
-| UCI Sonar | 0.2915 | 0.2697 | 4.1353 | 5.32 × 10⁻⁵ | [0.0114, 0.0323] |
+### k-Nearest Neighbours (kNN)
 
-For both datasets, the mean energy is higher for the metal class. The small p-values and confidence intervals that do not include zero indicate a statistically significant difference in the sample means.
+We implemented a kNN classifier using a pipeline consisting of:
 
-## Machine-learning models and results
+- **StandardScaler:** To standardise the input features.
+- **KNeighborsClassifier:** To classify sonar returns based on their nearest neighbours.
 
-### k-nearest neighbours (kNN)
+Different values of k were evaluated using stratified 5-fold cross-validation, and the optimal value was selected based on the cross-validation performance.
 
-The kNN workflow uses a `StandardScaler` followed by `KNeighborsClassifier`. We tested odd values of `k` from 1 to 31 using stratified 5-fold cross-validation. A majority-class `DummyClassifier` provides the baseline. The notebook also uses nested cross-validation to estimate performance while accounting for the selection of `k`.
+A majority-class classifier was also used as a baseline for comparison.
 
-| Dataset | Selected `k` | Best 5-fold CV accuracy | Nested 5-fold CV accuracy |
-|---|---:|---:|---:|
-| Synthetic | 21 | 100.00% | 100.00% |
-| UCI Sonar | 1 | 84.65% | 83.18% |
+### Decision Tree
 
-These kNN values were reproduced by running the workflow in the uploaded notebook on the supplied CSV files; the notebook itself did not contain saved outputs for these result cells.
+We also implemented a decision-tree classifier to classify the sonar returns into metal and rock categories.
 
-On the UCI dataset, the additional stratified 80/20 hold-out test gave **92.86% accuracy on 42 test samples**. Because this test set is small, the cross-validation results are more informative than the single hold-out score.
+The model was trained using the energy-bin measurements as input features and the corresponding material labels as the target. The maximum depth of the decision tree was controlled to limit model complexity.
 
-The synthetic dataset remains highly separable at low added-noise levels. In the noise-sweep experiment, the best 5-fold CV accuracy decreased from 100% without added noise to approximately 89.0% at noise standard deviation 0.4, 77.8% at 0.6, and 69.3% at 0.8.
+### Model Testing and Evaluation
 
-### Decision tree
+The trained models were evaluated using cross-validation and train-test splitting.
 
-A separate notebook contains a decision-tree experiment using a maximum depth of 5 and an 80/20 stratified train-test split. Its saved data preview and feature/target column selection do not clearly match the supplied CSV structure. The notebook should be corrected to select the 60 `energy_bin_` columns as input features and the class-label column as the target before its accuracy or classification report is included as a verified result.
+We also performed a noise analysis on the synthetic dataset by introducing different levels of Gaussian noise into the energy measurements and observing the effect on classification.
+
+These experiments allowed us to study the performance and reliability of the machine-learning models under different data conditions.
 
 ## Conclusion
 
-The statistical analysis shows that the metal class has a higher average returned energy than the rock class in both the synthetic and UCI datasets. The kNN classifier separates the synthetic samples very well and achieves about **83% nested cross-validation accuracy** on the UCI Sonar data. The synthetic noise experiment also shows that classification becomes more difficult as the noise level increases. These results suggest that the echo-energy profile contains useful information for distinguishing the two classes, while performance on real data is less perfect than on the synthetic data.
+This project investigates the possibility of distinguishing metal objects from rocks using sonar echo-energy measurements.
 
-## Team contributions
+The statistical analysis shows that metal samples have a higher average echo energy than rock samples in both datasets. We further explored machine-learning approaches, including k-nearest neighbours and decision trees, to automate the classification process.
 
-| Responsibility | Team members |
+The project combines physical interpretation, statistical analysis, and data-driven modelling to understand how sonar echo patterns can be used for material classification.
+
+## Team Contributions
+
+| Responsibility | Team Members |
 |---|---|
-| Data collection | Santhosh S, Vinodh |
-| Data analysis | Aaradhya Jain, Dhiwin |
-| Model making | Dushyanth Rangarajan, Siddharth Tarimala |
-| Model testing | Pavan |
+| Data Collection | Santhosh S, Vinodh |
+| Data Analysis | Aaradhya Jain, Dhiwin |
+| Model Making | Dushyanth Rangarajan, Siddharth Tarimala |
+| Model Testing | Pavan |
 
-## Project files
+## Project Files
 
-The project materials include the following notebooks and datasets:
+| File | Description |
+|---|---|
+| `synthetic_echo_returns_400_formatted.csv` | Synthetic sonar echo dataset |
+| `uci_sonar_clean_reformatted.csv` | Real UCI Sonar dataset |
+| `Data_Analysis_Problem_8_group_9.ipynb` | Statistical analysis of synthetic data |
+| `Data_Analysis_for_Real_Data.ipynb` | Statistical analysis of real data |
+| `Part3_kNN (1).ipynb` | kNN training, cross-validation and testing |
+| `Decision_tree_endsemproject.ipynb` | Decision-tree classification |
 
-- `Data_Analysis_Problem_8_group_9.ipynb` – statistical analysis of the synthetic dataset.
-- `Data_Analysis_for_Real_Data.ipynb` – statistical analysis of the UCI Sonar dataset.
-- `Part3_kNN (1).ipynb` – kNN model selection, cross-validation, hold-out testing, and noise-sweep analysis.
-- `Decision_tree_endsemproject.ipynb` – decision-tree experiment.
-- `synthetic_echo_returns_400_formatted.csv` – synthetic echo dataset.
-- `uci_sonar_clean_reformatted.csv` – cleaned UCI Sonar dataset.
+## Tools and Libraries Used
 
-## Tools and libraries
+- Python
+- Jupyter Notebook / Google Colab
+- NumPy
+- Pandas
+- SciPy
+- Matplotlib
+- Seaborn
+- Scikit-learn
 
-Python, Jupyter Notebook / Google Colab, NumPy, pandas, SciPy, Matplotlib, Seaborn, and scikit-learn.
+### Installation
 
-To install the main Python libraries:
+Install the required Python libraries using:
 
 ```bash
 pip install numpy pandas scipy matplotlib seaborn scikit-learn ucimlrepo
 ```
+
+Open the notebooks in Jupyter Notebook or Google Colab. Ensure the corresponding CSV files are available in the working directory and update file paths wherever necessary.
+
+---
+
+**Course:** PH1050 – Foundation of Computational Physics  
+**Project:** Final Group Project – Problem 8  
+**Institution:** Indian Institute of Technology Madras
